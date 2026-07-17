@@ -1,0 +1,295 @@
+{
+ "since": "2026-01-01",
+ "holidays": [
+  "2026-01-01",
+  "2026-01-02",
+  "2026-03-03",
+  "2026-04-06",
+  "2026-04-13",
+  "2026-04-14",
+  "2026-04-15",
+  "2026-05-01",
+  "2026-05-04",
+  "2026-06-01",
+  "2026-06-03",
+  "2026-07-28",
+  "2026-07-29",
+  "2026-08-12",
+  "2026-10-13",
+  "2026-10-23",
+  "2026-12-07",
+  "2026-12-10",
+  "2026-12-31"
+ ],
+ "projects": [
+  "ODDO",
+  "IFIN",
+  "ITSD",
+  "XO",
+  "IS",
+  "FN",
+  "FO",
+  "MB",
+  "VFM",
+  "WL",
+  "IIC",
+  "FUN",
+  "IH"
+ ],
+ "field_candidates": {
+  "dev_points": [
+   "customfield_10016",
+   "customfield_10023",
+   "customfield_10508",
+   "customfield_10078"
+  ],
+  "test_points": [
+   "customfield_10507",
+   "customfield_10591",
+   "customfield_10473",
+   "customfield_10091"
+  ],
+  "tester": [
+   "customfield_10033",
+   "customfield_10590",
+   "customfield_10556",
+   "customfield_10302",
+   "customfield_10087"
+  ],
+  "sprint": "customfield_10021"
+ },
+ "status_map": {
+  "ODDO": {
+   "dev_start": [
+    "In Progress"
+   ],
+   "handoff": [],
+   "defect": [],
+   "done": [
+    "Done"
+   ],
+   "excluded": [],
+   "test_active": []
+  },
+  "IFIN": {
+   "dev_start": [
+    "BackEnd Processing",
+    "FrontEnd Processing",
+    "App Support Processing",
+    "ROA Processing",
+    "Enhancement"
+   ],
+   "handoff": [
+    "Fixed/Retest",
+    "Operation Review"
+   ],
+   "defect": [],
+   "done": [
+    "Done"
+   ],
+   "excluded": [
+    "Pending Case"
+   ],
+   "test_active": []
+  },
+  "ITSD": {
+   "dev_start": [
+    "In Progress"
+   ],
+   "handoff": [
+    "Review"
+   ],
+   "defect": [],
+   "done": [
+    "Done",
+    "Closed"
+   ],
+   "excluded": [],
+   "test_active": []
+  },
+  "XO": {
+   "dev_start": [
+    "In Progress"
+   ],
+   "handoff": [
+    "Ready for QA"
+   ],
+   "defect": [],
+   "done": [
+    "Done",
+    "Ready to Deploy"
+   ],
+   "excluded": [
+    "Won't Do"
+   ],
+   "test_active": []
+  },
+  "IS": {
+   "dev_start": [
+    "In Progress"
+   ],
+   "handoff": [
+    "READY TO TEST"
+   ],
+   "defect": [],
+   "done": [
+    "Done",
+    "Waiting Deploy",
+    "Waiting to Deploy"
+   ],
+   "excluded": [
+    "WON'T DO"
+   ],
+   "test_active": []
+  },
+  "FN": {
+   "dev_start": [
+    "In Progress"
+   ],
+   "handoff": [],
+   "defect": [],
+   "done": [
+    "Done"
+   ],
+   "excluded": [],
+   "test_active": []
+  },
+  "FO": {
+   "dev_start": [
+    "In Progress"
+   ],
+   "handoff": [
+    "Ready to test",
+    "Testing"
+   ],
+   "defect": [],
+   "done": [
+    "Done"
+   ],
+   "excluded": [
+    "WON'T DO"
+   ],
+   "test_active": [
+    "Testing"
+   ]
+  },
+  "MB": {
+   "dev_start": [
+    "In Progress"
+   ],
+   "handoff": [],
+   "defect": [],
+   "done": [
+    "Done"
+   ],
+   "excluded": [],
+   "test_active": []
+  },
+  "VFM": {
+   "dev_start": [
+    "In Progress",
+    "unit test"
+   ],
+   "handoff": [
+    "Ready to test",
+    "Ready to uat",
+    "Testing"
+   ],
+   "defect": [
+    "Failed"
+   ],
+   "done": [
+    "Done",
+    "Waiting to deploy"
+   ],
+   "excluded": [
+    "won't do"
+   ],
+   "test_active": [
+    "Testing"
+   ]
+  },
+  "WL": {
+   "dev_start": [
+    "In Progress"
+   ],
+   "handoff": [
+    "READY TO TEST",
+    "TESTING"
+   ],
+   "defect": [
+    "TEST FAILED"
+   ],
+   "done": [
+    "Done"
+   ],
+   "excluded": [
+    "Won't Do"
+   ],
+   "test_active": [
+    "TESTING"
+   ]
+  },
+  "IIC": {
+   "dev_start": [
+    "In Progress"
+   ],
+   "handoff": [
+    "Ready to test",
+    "TEST",
+    "Testing"
+   ],
+   "defect": [
+    "Retest Failed"
+   ],
+   "done": [
+    "Done"
+   ],
+   "excluded": [
+    "Won't do"
+   ],
+   "test_active": [
+    "TEST",
+    "Testing"
+   ]
+  },
+  "FUN": {
+   "dev_start": [
+    "Dev in progress",
+    "CODE REVIEW"
+   ],
+   "handoff": [
+    "Ready to test",
+    "Testing by QA"
+   ],
+   "defect": [
+    "RETEST FAILED"
+   ],
+   "done": [
+    "Done",
+    "Waiting to deploy"
+   ],
+   "excluded": [
+    "Won't do"
+   ],
+   "test_active": [
+    "Testing by QA"
+   ]
+  },
+  "IH": {
+   "dev_start": [
+    "In Progress"
+   ],
+   "handoff": [
+    "In Review"
+   ],
+   "defect": [],
+   "done": [
+    "Done"
+   ],
+   "excluded": [],
+   "test_active": []
+  }
+ },
+ "annual_leave_days": 10
+}

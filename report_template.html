@@ -1,0 +1,804 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Capacity & Velocity Report</title>
+<style>
+:root {
+  color-scheme: light;
+  --surface: #fcfcfb; --page: #f9f9f7;
+  --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,.10);
+  --dev: #2a78d6; --test: #1baf7a;
+  --c1: #2a78d6; --c2: #1baf7a; --c3: #eda100; --c4: #4a3aa7; --c5: #e87ba4;
+  --good: #0ca30c; --warn: #fab219; --serious: #ec835a; --critical: #d03b3b;
+  --good-text: #006300;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --surface: #1a1a19; --page: #0d0d0d;
+    --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,.10);
+    --dev: #3987e5; --test: #199e70;
+    --c1: #3987e5; --c2: #199e70; --c3: #c98500; --c4: #9085e9; --c5: #d55181;
+    --good-text: #0ca30c;
+  }
+}
+* { box-sizing: border-box; margin: 0; }
+body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--page); color: var(--ink); font-size: 14px; line-height: 1.45; }
+.wrap { max-width: 1160px; margin: 0 auto; padding: 20px 16px 60px; }
+h1 { font-size: 20px; font-weight: 650; }
+.sub { color: var(--ink-2); margin: 2px 0 16px; font-size: 13px; }
+.filters { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+select, .tab { font: inherit; padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.tab { cursor: pointer; }
+.tab.on { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 14px; overflow-x: auto; }
+.card h2 { font-size: 15px; font-weight: 650; margin-bottom: 2px; }
+.card .note { color: var(--muted); font-size: 12.5px; margin-bottom: 10px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+.tile .lab { color: var(--ink-2); font-size: 12.5px; }
+.tile .val { font-size: 26px; font-weight: 650; margin-top: 2px; }
+.tile .d { font-size: 12px; color: var(--muted); }
+table { border-collapse: collapse; width: 100%; }
+th { text-align: left; color: var(--muted); font-weight: 550; font-size: 12.5px; border-bottom: 1px solid var(--axis); padding: 6px 8px; white-space: nowrap; }
+td { padding: 6px 8px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+tr.click { cursor: pointer; }
+tr.click:hover td { background: color-mix(in srgb, var(--ink) 4%, transparent); }
+tr.sel td { background: color-mix(in srgb, var(--dev) 10%, transparent); }
+.chip { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--border); white-space: nowrap; }
+.chip.over { color: var(--good-text); }
+.chip.under { color: var(--critical); }
+.chip.mid { color: var(--ink-2); }
+.legend { display: flex; gap: 14px; font-size: 12.5px; color: var(--ink-2); margin: 4px 0 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.sw { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.barwrap { position: relative; }
+.avgline { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--axis); }
+.avgtag { position: absolute; top: -16px; transform: translateX(-50%); font-size: 11px; color: var(--muted); white-space: nowrap; }
+.brow { display: grid; grid-template-columns: 250px 1fr 90px; gap: 8px; align-items: center; padding: 3px 0; }
+.brow .nm { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brow .track { position: relative; height: 18px; }
+.brow .bar { position: absolute; top: 2px; height: 14px; border-radius: 0 4px 4px 0; min-width: 2px; }
+.brow .v { font-variant-numeric: tabular-nums; font-size: 12.5px; color: var(--ink-2); }
+.cols { display: flex; align-items: flex-end; gap: 10px; height: 170px; padding-top: 18px; border-bottom: 1px solid var(--axis); }
+.colgrp { flex: 1; display: flex; align-items: flex-end; justify-content: center; gap: 2px; height: 100%; position: relative; min-width: 34px; }
+.col { width: 14px; max-width: 14px; border-radius: 4px 4px 0 0; }
+.colx { display: flex; gap: 10px; margin-top: 4px; }
+.colx div { flex: 1; text-align: center; font-size: 10.5px; color: var(--muted); min-width: 34px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.mono { font-variant-numeric: tabular-nums; }
+.klink { color: var(--dev); text-decoration: none; }
+.klink:hover { text-decoration: underline; }
+.small { font-size: 12px; color: var(--muted); }
+.pane { display: none; }
+.pane.on { display: block; }
+.rolebtns { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.rolebtns button { font: inherit; border: 0; background: var(--surface); color: var(--ink); padding: 6px 12px; cursor: pointer; }
+.rolebtns button.on { background: var(--ink); color: var(--surface); }
+.pos { color: var(--good-text); } .neg { color: var(--critical); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Capacity & Velocity Report</h1>
+  <div class="sub" id="subtitle"></div>
+
+  <div class="filters">
+    <label>โปรเจกต์ <select id="fProject"><option value="">ทุกโปรเจกต์</option></select></label>
+    <span class="rolebtns" id="fRole">
+      <button data-r="dev" class="on">Dev</button><button data-r="tester">Tester</button>
+    </span>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-t="overview">ภาพรวม</button>
+    <button class="tab" data-t="velocity">Velocity รายคน</button>
+    <button class="tab" data-t="sprint">Drill down ราย Sprint</button>
+    <button class="tab" data-t="estimate">Estimate vs Actual</button>
+    <button class="tab" data-t="defect">Defect & Retest</button>
+    <button class="tab" data-t="insight">Insight</button>
+    <button class="tab" data-t="quality">คุณภาพข้อมูล & วิธีคิด</button>
+  </div>
+
+  <div class="pane on" id="p-overview"></div>
+  <div class="pane" id="p-velocity"></div>
+  <div class="pane" id="p-sprint"></div>
+  <div class="pane" id="p-estimate"></div>
+  <div class="pane" id="p-defect"></div>
+  <div class="pane" id="p-insight"></div>
+  <div class="pane" id="p-quality"></div>
+</div>
+
+<script>
+/*__DATA__*/
+
+const JURL = (DATA.jiraBase || "") + "/browse/";
+const $ = (s, el=document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt = n => n == null ? "–" : (Math.round(n * 10) / 10).toLocaleString();
+const state = { project: "", role: "dev", tab: "overview", sprintSel: null, personSel: null, estPerson: null, defPerson: null };
+
+const sprintById = Object.fromEntries(DATA.sprints.map(s => [s.id, s]));
+function issues() {
+  return DATA.issues.filter(i => !state.project || i.project === state.project);
+}
+// people relevant to a role: dev -> devOwner, tester -> testOwners (both computed
+// in build_report.py; testing points are shared equally when there are multiple testers)
+function contributions(list, role) {
+  // returns [{person, issue, pts (จริง), imp (ประมาณจาก cycle time)}]
+  const out = [];
+  for (const i of list) {
+    if (role === "dev") { if (i.devOwner) out.push({ person: i.devOwner, issue: i, pts: i.devPts, imp: i.devPtsImp }); }
+    else for (const t of i.testOwners) out.push({
+      person: t, issue: i,
+      pts: i.testPts != null ? i.testPts / i.testOwners.length : null,
+      imp: i.testPtsImp != null ? i.testPtsImp / i.testOwners.length : null,
+    });
+  }
+  return out;
+}
+const ptsMark = (v, split) => v == null ? "–" : fmt(v) + (split ? "<span title=\"แบ่งครึ่งจาก estimate เดิม\">*</span>" : "");
+function velocityStats(role) {
+  const per = {}; // person -> {pts, imp, nIssues, nPointed, sprints:Set, fpYes, fpTot, defCaught}
+  for (const c of contributions(issues(), role)) {
+    const p = per[c.person] ??= { pts: 0, imp: 0, nIssues: 0, nPointed: 0, sprints: new Set(), fpYes: 0, fpTot: 0, defCaught: 0 };
+    p.nIssues++;
+    if (c.pts != null) { p.pts += c.pts; p.nPointed++; }
+    if (c.imp != null) p.imp += c.imp;
+    if (c.issue.sprint) p.sprints.add(c.issue.sprint);
+    if (role === "dev" && c.issue.firstPass !== null) { p.fpTot++; if (c.issue.firstPass) p.fpYes++; }
+    if (role === "tester") p.defCaught += c.issue.defects;
+  }
+  const rows = Object.entries(per).map(([name, p]) => {
+    const info = DATA.people[name] || {};
+    const capacity = info.capacity ?? 1;
+    const vReal = p.sprints.size ? p.pts / p.sprints.size : 0;
+    const vComb = p.sprints.size ? (p.pts + p.imp) / p.sprints.size : 0;
+    return {
+      name, role: info.role, label: info.label, capacity,
+      wip: role === "dev" ? info.wipDev : info.wipTest,
+      pts: p.pts, imp: p.imp, nIssues: p.nIssues, nPointed: p.nPointed,
+      nSprints: p.sprints.size, vReal, vComb,
+      adj: vComb / capacity, // normalized (จริง+ประมาณ) to full capacity for fair comparison
+      adjReal: vReal / capacity,
+      fp: p.fpTot ? p.fpYes / p.fpTot : null, fpTot: p.fpTot,
+      defCaught: p.defCaught,
+    };
+  }).filter(r => r.role === role || (role === "dev" && !r.role));
+  const active = rows.filter(r => r.adj > 0);
+  const avg = active.length ? active.reduce((a, r) => a + r.adj, 0) / active.length : 0;
+  rows.sort((a, b) => b.adj - a.adj || b.nIssues - a.nIssues);
+  return { rows, avg };
+}
+function chipFor(v, avg) {
+  if (!avg || v <= 0) return `<span class="chip mid">ไม่มีข้อมูล point</span>`;
+  if (v >= avg * 1.1) return `<span class="chip over">▲ over — สูงกว่าค่าเฉลี่ย</span>`;
+  if (v <= avg * 0.9) return `<span class="chip under">▼ under — ต่ำกว่าค่าเฉลี่ย</span>`;
+  return `<span class="chip mid">≈ ตามค่าเฉลี่ย</span>`;
+}
+
+/* ---------- overview ---------- */
+function renderOverview() {
+  const list = issues();
+  const devPts = list.reduce((a, i) => a + (i.devPts || 0), 0);
+  const testPts = list.reduce((a, i) => a + (i.testPts || 0), 0);
+  const ppl = new Set(); list.forEach(i => { if (i.devOwner) ppl.add(i.devOwner); if (i.assignee) ppl.add(i.assignee); i.testOwners.forEach(t => ppl.add(t)); });
+  const sIds = [...new Set(list.map(i => i.sprint).filter(Boolean))].sort((a, b) => sprintById[a].start < sprintById[b].start ? -1 : 1);
+  const pointed = list.filter(i => i.devPts != null || i.testPts != null).length;
+
+  let cols = "", colx = "";
+  const maxPts = Math.max(1, ...sIds.map(id => {
+    const ss = list.filter(i => i.sprint === id);
+    return Math.max(ss.reduce((a, i) => a + (i.devPts || 0), 0), ss.reduce((a, i) => a + (i.testPts || 0), 0));
+  }));
+  for (const id of sIds) {
+    const ss = list.filter(i => i.sprint === id);
+    const d = ss.reduce((a, i) => a + (i.devPts || 0), 0), t = ss.reduce((a, i) => a + (i.testPts || 0), 0);
+    cols += `<div class="colgrp" title="${esc(sprintById[id].name)}: dev ${fmt(d)} / test ${fmt(t)} pts, ${ss.length} งาน">
+      <div class="col" style="height:${d / maxPts * 100}%;background:var(--dev)"></div>
+      <div class="col" style="height:${t / maxPts * 100}%;background:var(--test)"></div></div>`;
+    colx += `<div title="${esc(sprintById[id].name)}">${esc(sprintById[id].name.replace(/ Sprint /, " S"))}</div>`;
+  }
+  $("#p-overview").innerHTML = `
+  <div class="tiles">
+    <div class="tile"><div class="lab">งานที่ปิดแล้ว</div><div class="val">${list.length.toLocaleString()}</div><div class="d">ตั้งแต่ ${DATA.since}</div></div>
+    <div class="tile"><div class="lab">Dev points ที่ปิด</div><div class="val">${fmt(devPts)}</div></div>
+    <div class="tile"><div class="lab">Testing points ที่ปิด</div><div class="val">${fmt(testPts)}</div></div>
+    <div class="tile"><div class="lab">คนที่มีงาน</div><div class="val">${ppl.size}</div></div>
+    <div class="tile"><div class="lab">งานที่มี point</div><div class="val">${list.length ? Math.round(pointed / list.length * 100) : 0}%</div><div class="d">${pointed.toLocaleString()} จาก ${list.length.toLocaleString()} งาน</div></div>
+    <div class="tile"><div class="lab">งานที่แบ่ง point 50/50</div><div class="val">${list.filter(i => i.split).length}</div><div class="d">ไม่มี testing point แยก</div></div>
+    <div class="tile"><div class="lab">อัตรากลางของทีม</div><div class="val">${fmt(DATA.rateDev)} วัน</div><div class="d">ต่อ 1 dev point · test ${fmt(DATA.rateTest)} วัน/point</div></div>
+  </div>
+  <div class="card">
+    <h2>Points ที่ปิดได้ในแต่ละ sprint</h2>
+    <div class="note">นับจากวันที่ปิดงานเทียบกับช่วงวันของ sprint ในโปรเจกต์เดียวกัน</div>
+    <div class="legend"><span><span class="sw" style="background:var(--dev)"></span>Dev points</span><span><span class="sw" style="background:var(--test)"></span>Testing points</span></div>
+    <div class="cols">${cols}</div><div class="colx">${colx}</div>
+  </div>
+  ${queueCard(list, sIds)}
+  ${carryCard(list, sIds)}`;
+}
+function carryStats(list, sIds) {
+  return sIds.map(id => {
+    const withStart = list.filter(i => i.sprint === id && i.devStart);
+    const carried = withStart.filter(i => i.carried).length;
+    return { id, n: withStart.length, carried, rate: withStart.length ? carried / withStart.length : null };
+  }).filter(s => s.n >= 5);
+}
+function carryCard(list, sIds) {
+  const per = carryStats(list, sIds);
+  if (!per.length) return "";
+  const cols = per.map(s => `
+    <div class="colgrp" title="${esc(sprintById[s.id].name)}: carry-over ${Math.round(s.rate * 100)}% (${s.carried}/${s.n} งาน)">
+      <div class="col" style="height:${Math.max(s.rate * 100, 2)}%;background:var(--c4)"></div>
+    </div>`).join("");
+  const colx = per.map(s => `<div title="${esc(sprintById[s.id].name)}">${esc(sprintById[s.id].name.replace(/ Sprint /, " S"))}</div>`).join("");
+  return `<div class="card">
+    <h2>Carry-over รายสปรินต์ (% งานที่เริ่มก่อน sprint จะเปิด)</h2>
+    <div class="note">งานที่ปิดใน sprint แต่เริ่ม dev มาตั้งแต่ sprint ก่อนหน้า — สูงเรื้อรัง = วางแผน/ตัดงานเข้า sprint ใหญ่เกินกำลัง (แสดงเฉพาะ sprint ที่วัดได้ ≥5 งาน · แกนตั้ง 0–100%)</div>
+    <div class="cols" style="height:110px">${cols}</div><div class="colx">${colx}</div>
+  </div>`;
+}
+function median(a) { if (!a.length) return null; const s = [...a].sort((x, y) => x - y); return s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2; }
+function queueCard(list, sIds) {
+  const per = sIds.map(id => {
+    const q = list.filter(i => i.sprint === id && i.queueDays != null).map(i => i.queueDays);
+    return { id, med: median(q), n: q.length };
+  }).filter(s => s.n >= 3);
+  if (!per.length) return "";
+  const maxQ = Math.max(1, ...per.map(s => s.med));
+  const cols = per.map(s => `
+    <div class="colgrp" title="${esc(sprintById[s.id].name)}: คิวรอ median ${fmt(s.med)} วันทำงาน (${s.n} งาน)">
+      <div class="col" style="height:${Math.max(s.med / maxQ * 100, 2)}%;background:var(--test)"></div>
+    </div>`).join("");
+  const colx = per.map(s => `<div title="${esc(sprintById[s.id].name)}">${esc(sprintById[s.id].name.replace(/ Sprint /, " S"))}</div>`).join("");
+  return `<div class="card">
+    <h2>คิวรอเข้าเทส (median วันทำงาน) รายสปรินต์</h2>
+    <div class="note">เวลาที่ card นั่งรออยู่ใน Ready to test ก่อน QA หยิบไปเทสจริง — ถ้าโป่งขึ้นแปลว่ากำลัง tester ไม่พอ ไม่ใช่ tester ช้า (แสดงเฉพาะ sprint ที่มีข้อมูล ≥3 งาน)</div>
+    <div class="cols" style="height:110px">${cols}</div><div class="colx">${colx}</div>
+  </div>`;
+}
+
+/* ---------- velocity ---------- */
+function renderVelocity() {
+  const { rows, avg } = velocityStats(state.role);
+  const maxV = Math.max(avg * 1.2, ...rows.map(r => r.adj), 1);
+  const color = state.role === "dev" ? "var(--dev)" : "var(--test)";
+  const nameOf = r => esc(r.name) + (r.label ? ` <span class="chip mid">${esc(r.label)} · ${Math.round(r.capacity * 100)}%</span>` : "");
+  const bars = rows.map(r => {
+    const realW = r.adjReal / maxV * 100, impW = (r.adj - r.adjReal) / maxV * 100;
+    return `
+    <div class="brow">
+      <div class="nm" title="${esc(r.name)}">${nameOf(r)}</div>
+      <div class="track" title="${esc(r.name)}: point จริง ${fmt(r.pts)} + ประมาณ ~${fmt(r.imp)}${r.capacity < 1 ? ` ÷ capacity ${Math.round(r.capacity * 100)}%` : ""} = ${fmt(r.adj)} pts/sprint">
+        <div class="bar" style="width:${realW}%;background:${color}"></div>
+        <div class="bar" style="left:${realW}%;width:${impW}%;background:${color};opacity:.4;border-radius:0 4px 4px 0"></div>
+      </div>
+      <div class="v">${fmt(r.adj)} pts/spr</div>
+    </div>`;
+  }).join("");
+  const qcol = state.role === "dev"
+    ? r => `<td class="num">${r.fp == null ? "–" : Math.round(r.fp * 100) + "%"} <span class="small">(${r.fpTot})</span></td>`
+    : r => `<td class="num">${r.defCaught || "–"}</td>`;
+  const trows = rows.map(r => `
+    <tr><td>${nameOf(r)}</td>
+    <td class="num">${r.nIssues}</td>
+    <td class="num">${fmt(r.pts)}</td>
+    <td class="num">${r.imp ? "~" + fmt(r.imp) : "–"}</td>
+    <td class="num">${r.nSprints}</td>
+    <td class="num">${fmt(r.adj)}</td>
+    <td class="num">${r.capacity < 1 ? Math.round(r.capacity * 100) + "%" : "100%"}</td>
+    <td class="num">${r.wip ?? "–"}</td>
+    ${qcol(r)}
+    <td>${chipFor(r.adj, avg)}</td></tr>`).join("");
+  $("#p-velocity").innerHTML = `
+  <div class="card">
+    <h2>Velocity เฉลี่ยรายคน — ${state.role === "dev" ? "Dev (นับจาก assignee + story/dev point)" : "Tester (นับจากช่อง Tester + testing point)"}</h2>
+    <div class="note">velocity = point ที่ปิดได้ทั้งหมด ÷ จำนวน sprint ที่มีงานปิด · คนที่ capacity ไม่เต็ม (เช่น PE 50%) แท่งและการเทียบใช้ค่า normalize (velocity ÷ capacity) เพื่อความแฟร์ · เส้นแนวตั้ง = ค่าเฉลี่ยทีม ${fmt(avg)} pts/sprint</div>
+    <div class="barwrap" style="padding-top:18px">
+      <div class="avgline" style="left:calc(258px + (100% - 356px) * ${avg / maxV})"></div>
+      <div class="avgtag" style="left:calc(258px + (100% - 356px) * ${avg / maxV})">ค่าเฉลี่ย ${fmt(avg)}</div>
+      ${bars}
+    </div>
+  </div>
+  <div class="card">
+    <h2>ตารางสรุป</h2>
+    <table><thead><tr><th>ชื่อ</th><th class="num">งานที่ปิด</th><th class="num">points จริง</th><th class="num">points ประมาณ</th><th class="num">sprint ที่มีงาน</th><th class="num">velocity ปรับแล้ว</th><th class="num">capacity</th><th class="num">WIP เฉลี่ย</th><th class="num">${state.role === "dev" ? "ผ่าน QA รอบเดียว" : "defect ที่จับได้"}</th><th>เทียบค่าเฉลี่ย</th></tr></thead>
+    <tbody>${trows}</tbody></table>
+    <div class="small" style="margin-top:8px">points ประมาณ (~ และแถบสีจาง) = งานไม่มี point ตีค่าจาก cycle time เทียบอัตรากลางทีม — วัด "เวลาที่ใช้" ไม่ใช่ผลงาน ใช้ดู workload · WIP เฉลี่ย = จำนวน card ที่ถือพร้อมกันต่อวันทำงาน ยิ่งสูงงานยิ่งช้าจาก context switching</div>
+  </div>${typeMixCard(state.role)}`;
+}
+
+/* ---------- type mix per person (Phase 8) ---------- */
+const TYPE_ORDER = ["Story", "Task", "Bug", "Subtask", "Incident"];
+const TYPE_COLOR = { Story: "var(--c1)", Task: "var(--c2)", Bug: "var(--c3)", Subtask: "var(--c4)", Incident: "var(--c5)" };
+function typeMixCard(role) {
+  const per = {};
+  for (const c of contributions(issues(), role)) {
+    if ((DATA.people[c.person]?.role ?? "dev") !== role) continue;
+    const p = per[c.person] ??= {};
+    p[c.issue.type] = (p[c.issue.type] || 0) + 1;
+  }
+  const rows = Object.entries(per)
+    .map(([name, t]) => ({ name, t, total: Object.values(t).reduce((a, b) => a + b, 0) }))
+    .sort((a, b) => b.total - a.total);
+  if (!rows.length) return "";
+  const legend = TYPE_ORDER.map(ty => `<span><span class="sw" style="background:${TYPE_COLOR[ty]}"></span>${ty}</span>`).join("");
+  const bars = rows.map(r => {
+    const segs = TYPE_ORDER.filter(ty => r.t[ty]).map(ty =>
+      `<div title="${esc(r.name)}: ${ty} ${r.t[ty]} งาน (${Math.round(r.t[ty] / r.total * 100)}%)" style="flex:${r.t[ty]} 0 0;background:${TYPE_COLOR[ty]};border-radius:3px"></div>`).join("");
+    return `<div class="brow" style="grid-template-columns:250px 1fr 70px">
+      <div class="nm" title="${esc(r.name)}">${esc(r.name)}</div>
+      <div style="display:flex;gap:2px;height:14px">${segs}</div>
+      <div class="v">${r.total} งาน</div>
+    </div>`;
+  }).join("");
+  return `<div class="card">
+    <h2>สัดส่วนประเภทงานที่ปิด — ${role === "dev" ? "Dev" : "Tester"}</h2>
+    <div class="note">ให้บริบทกับ velocity: คนที่รับ Bug/Subtask เยอะมักไม่มี point ให้เก็บ — workload จริงไปโผล่ในแถบค่าประมาณ (~) แทน</div>
+    <div class="legend">${legend}</div>
+    ${bars}
+  </div>`;
+}
+
+/* ---------- sprint drill down ---------- */
+function renderSprint() {
+  const sIds = [...new Set(issues().map(i => i.sprint).filter(Boolean))].sort((a, b) => sprintById[a].start < sprintById[b].start ? 1 : -1);
+  if (!state.sprintSel || !sIds.includes(state.sprintSel)) state.sprintSel = sIds[0];
+  const opts = sIds.map(id => `<option value="${id}" ${id === state.sprintSel ? "selected" : ""}>${esc(sprintById[id].name)} (${sprintById[id].start} → ${sprintById[id].end})</option>`).join("");
+  const ss = issues().filter(i => i.sprint === state.sprintSel);
+  const per = {};
+  for (const i of ss) {
+    if (i.devOwner) { const p = per[i.devOwner] ??= { dev: 0, test: 0, n: 0, defects: 0, items: [] }; p.dev += i.devPts || 0; p.n++; p.defects += i.defects; p.items.push(i); }
+    for (const t of i.testOwners) { const p = per[t] ??= { dev: 0, test: 0, n: 0, defects: 0, items: [] }; p.test += (i.testPts || 0) / i.testOwners.length; if (!p.items.includes(i)) { p.items.push(i); p.n++; } }
+  }
+  const withStart = ss.filter(i => i.devStart);
+  const carriedN = withStart.filter(i => i.carried).length;
+  const carryNote = withStart.length >= 5
+    ? ` · carry-over ${Math.round(carriedN / withStart.length * 100)}% (${carriedN}/${withStart.length} งานเริ่มมาก่อน sprint เปิด)` : "";
+  const names = Object.keys(per).sort((a, b) => (per[b].dev + per[b].test) - (per[a].dev + per[a].test));
+  if (state.personSel && !names.includes(state.personSel)) state.personSel = null;
+  const rows = names.map(n => `
+    <tr class="click ${state.personSel === n ? "sel" : ""}" data-p="${esc(n)}">
+      <td>${esc(n)} <span class="small">(${esc(DATA.people[n]?.label || DATA.people[n]?.role || "?")})</span></td>
+      <td class="num">${fmt(per[n].dev)}</td><td class="num">${fmt(per[n].test)}</td>
+      <td class="num">${per[n].n}</td><td class="num">${per[n].defects || ""}</td></tr>`).join("");
+  let detail = "";
+  if (state.personSel) {
+    const items = per[state.personSel].items;
+    detail = `<div class="card"><h2>งานของ ${esc(state.personSel)} ใน ${esc(sprintById[state.sprintSel].name)}</h2>
+    <table><thead><tr><th>Key</th><th>งาน</th><th>ประเภท</th><th class="num">dev pts</th><th class="num">test pts</th><th class="num">dev วันจริง</th><th class="num">test วันจริง</th><th class="num">defect</th><th>ปิดเมื่อ</th></tr></thead><tbody>
+    ${items.map(i => `<tr><td><a class="klink" href="${JURL}${i.key}" target="_blank">${i.key}</a></td>
+      <td>${esc(i.summary)}</td><td class="small">${esc(i.type)}</td>
+      <td class="num">${ptsMark(i.devPts, i.split)}</td><td class="num">${ptsMark(i.testPts, i.split)}</td>
+      <td class="num">${fmt(i.devDays)}</td><td class="num">${fmt(i.testDays)}</td>
+      <td class="num">${i.defects || ""}</td><td class="mono small">${i.doneTs}</td></tr>`).join("")}
+    </tbody></table>
+    <div class="small" style="margin-top:8px">* = งานที่ไม่มี testing point แยก จึงแบ่ง estimate เดิมคนละครึ่งระหว่าง dev กับ tester</div></div>`;
+  }
+  $("#p-sprint").innerHTML = `
+  <div class="card">
+    <h2>ใครทำอะไรบ้างในแต่ละ sprint</h2>
+    <div class="note">เลือก sprint แล้วคลิกชื่อคนเพื่อดูรายการงาน${carryNote}</div>
+    <p style="margin-bottom:10px"><select id="fSprint">${opts}</select></p>
+    <table><thead><tr><th>ชื่อ</th><th class="num">dev points</th><th class="num">testing points</th><th class="num">งานที่ปิด</th><th class="num">defect</th></tr></thead>
+    <tbody>${rows || `<tr><td colspan="5" class="small">ไม่มีงานปิดใน sprint นี้</td></tr>`}</tbody></table>
+  </div>${detail}`;
+  $("#fSprint").onchange = e => { state.sprintSel = +e.target.value; state.personSel = null; renderSprint(); };
+  document.querySelectorAll("#p-sprint tr.click").forEach(tr => tr.onclick = () => { state.personSel = tr.dataset.p; renderSprint(); });
+}
+
+/* ---------- estimate vs actual ---------- */
+function estRows(role) {
+  const out = [];
+  for (const c of contributions(issues(), role)) {
+    const days = role === "dev" ? c.issue.devDays : c.issue.testDays;
+    if (c.pts != null && c.pts > 0 && days != null && (DATA.people[c.person]?.role === role)) {
+      const info = DATA.people[c.person] || {};
+      const cap = info.capacity ?? 1;
+      const wip = Math.max((role === "dev" ? info.wipDev : info.wipTest) ?? 1, 1);
+      // partial capacity and multitasking both stretch the expected calendar days;
+      // people without explicit leave dates also get the average leave allowance
+      const avail = info.hasLeaves ? 1 : (DATA.availability ?? 1);
+      const expected = c.pts / cap * wip / avail;
+      out.push({ person: c.person, issue: c.issue, pts: c.pts, days, wip, expected, variance: days - expected });
+    }
+  }
+  return out;
+}
+function biasCard(rows, role) {
+  const ratios = rows.map(r => r.days / r.expected).filter(x => isFinite(x) && x > 0);
+  if (ratios.length < 5) return "";
+  const med = median(ratios);
+  const buckets = [
+    ["เร็วกว่าคาดมาก (<0.5×)", x => x < 0.5],
+    ["เร็วกว่า/ตามคาด (0.5–1×)", x => x >= 0.5 && x <= 1],
+    ["ช้ากว่าเล็กน้อย (1–1.5×)", x => x > 1 && x <= 1.5],
+    ["ช้ากว่า 1.5–2×", x => x > 1.5 && x <= 2],
+    ["ช้ากว่า 2–3×", x => x > 2 && x <= 3],
+    ["ช้ากว่าเกิน 3×", x => x > 3],
+  ].map(([lab, f]) => ({ lab, n: ratios.filter(f).length }));
+  const maxN = Math.max(...buckets.map(b => b.n), 1);
+  const color = role === "dev" ? "var(--dev)" : "var(--test)";
+  const verdict = med > 1.15 ? `ทีมประเมินต่ำกว่าจริงอย่างเป็นระบบ (งานทั่วไปใช้เวลา ~${fmt(med)} เท่าของที่คาด) — ควรปรับตอน sprint planning ไม่ใช่โทษรายคน`
+    : med < 0.85 ? `ทีมประเมินเผื่อไว้เยอะ (median ${fmt(med)}×) — มีพื้นที่รับงานเพิ่มต่อ sprint`
+    : `การประเมินของทีมโดยรวมแม่น (median ${fmt(med)}×) — ความต่างรายคนเป็นเรื่องเฉพาะตัว ไม่ใช่ปัญหา planning`;
+  const bars = buckets.map(b => `
+    <div class="brow" style="grid-template-columns:190px 1fr 60px">
+      <div class="nm">${b.lab}</div>
+      <div class="track"><div class="bar" style="width:${b.n / maxN * 100}%;background:${color}"></div></div>
+      <div class="v">${b.n} งาน</div>
+    </div>`).join("");
+  return `<div class="card">
+    <h2>Estimation bias ของทีม — ${role === "dev" ? "Dev" : "Tester"}</h2>
+    <div class="note">การกระจายของ "เวลาจริง ÷ เวลาที่คาด (หลังปรับ capacity+WIP แล้ว)" จาก ${ratios.length} งาน · median ${fmt(med)}×</div>
+    ${bars}
+    <div class="small" style="margin-top:8px">${verdict}</div>
+  </div>`;
+}
+function renderEstimate() {
+  const role = state.role;
+  const rows = estRows(role);
+  const per = {};
+  for (const r of rows) {
+    const p = per[r.person] ??= { n: 0, onTime: 0, varSum: 0, defects: 0, items: [] };
+    p.n++; if (r.days <= r.expected) p.onTime++;
+    p.varSum += r.variance; p.defects += r.issue.defects; p.items.push(r);
+  }
+  const names = Object.keys(per).sort((a, b) => per[b].n - per[a].n);
+  if (state.estPerson && !names.includes(state.estPerson)) state.estPerson = null;
+  const trows = names.map(n => {
+    const p = per[n], avgVar = p.varSum / p.n, pct = Math.round(p.onTime / p.n * 100);
+    const info = DATA.people[n] || {};
+    const wip = Math.max((role === "dev" ? info.wipDev : info.wipTest) ?? 1, 1);
+    return `<tr class="click ${state.estPerson === n ? "sel" : ""}" data-p="${esc(n)}">
+      <td>${esc(n)}${info.label ? ` <span class="chip mid">${esc(info.label)} · ${Math.round((info.capacity ?? 1) * 100)}%</span>` : ""}</td>
+      <td class="num">${fmt(wip)}</td><td class="num">${p.n}</td>
+      <td class="num">${pct}%</td>
+      <td class="num ${avgVar > 0.5 ? "neg" : "pos"}">${avgVar > 0 ? "+" : ""}${fmt(avgVar)} วัน</td>
+      <td class="num">${p.defects || ""}</td></tr>`;
+  }).join("");
+  let detail = "";
+  if (state.estPerson) {
+    const items = per[state.estPerson].items.sort((a, b) => a.issue.doneTs < b.issue.doneTs ? 1 : -1);
+    detail = `<div class="card"><h2>รายงานราย issue — ${esc(state.estPerson)}</h2>
+    <table><thead><tr><th>Sprint</th><th>Key</th><th>งาน</th><th class="num">ประเมิน (pts=วัน)</th><th>${role === "dev" ? "เริ่ม dev" : "เริ่มเทสจริง"}</th><th>${role === "dev" ? "ส่งถึงมือเทส" : "ปิดงาน"}</th>${role === "tester" ? '<th class="num">คิวรอ (วัน)</th>' : ""}<th class="num">วันจริง</th><th class="num">ต่าง</th><th class="num">defect</th></tr></thead><tbody>
+    ${items.map(r => `<tr>
+      <td class="small">${esc(r.issue.sprint ? sprintById[r.issue.sprint].name : "นอก sprint")}</td>
+      <td><a class="klink" href="${JURL}${r.issue.key}" target="_blank">${r.issue.key}</a></td>
+      <td>${esc(r.issue.summary)}</td>
+      <td class="num">${ptsMark(r.pts, r.issue.split)}${r.expected !== r.pts ? `<span class="small"> (คาด ${fmt(r.expected)} วัน)</span>` : ""}</td>
+      <td class="mono small">${role === "dev" ? r.issue.devStart ?? "–" : r.issue.testStart ?? "–"}</td>
+      <td class="mono small">${role === "dev" ? r.issue.handoff ?? r.issue.doneTs : r.issue.doneTs}</td>
+      ${role === "tester" ? `<td class="num">${fmt(r.issue.queueDays)}</td>` : ""}
+      <td class="num">${fmt(r.days)}</td>
+      <td class="num ${r.variance > 0 ? "neg" : "pos"}">${r.variance > 0 ? "+" : ""}${fmt(r.variance)}</td>
+      <td class="num">${r.issue.defects || ""}</td></tr>`).join("")}
+    </tbody></table></div>`;
+  }
+  $("#p-estimate").innerHTML = `
+  <div class="card">
+    <h2>ประเมินไว้ vs ทำจริง — ${role === "dev" ? "Dev" : "Tester"}</h2>
+    <div class="note">${role === "dev"
+      ? "สูตร: 1 point = 1 วันทำงาน · วันจริง = วันแรกที่เริ่ม dev → วันสุดท้ายที่ส่งเข้ามือเทส (การส่งรอบท้ายสุดคือรอบที่ไม่เกิด defect แล้ว)"
+      : "สูตร: 1 point = 1 วันทำงาน · วันจริง = วันเริ่มเทสจริง (ไม่นับคิวรอหลังของถึงมือ) → วันปิดงาน"}
+      · นับเฉพาะวันจันทร์–ศุกร์ และเฉพาะงานที่มี point</div>
+    <table><thead><tr><th>ชื่อ</th><th class="num">WIP เฉลี่ย</th><th class="num">งานที่วัดได้</th><th class="num">ปิดตามคาด</th><th class="num">เฉลี่ยต่างจากคาด</th><th class="num">defect รวม</th></tr></thead>
+    <tbody>${trows || `<tr><td colspan="6" class="small">ไม่มีงานที่มีทั้ง point และวันที่ครบ</td></tr>`}</tbody></table>
+    <div class="small" style="margin-top:8px">คลิกชื่อเพื่อ drill down ราย issue · วันที่คาด = point ÷ capacity × WIP ÷ availability ${Math.round((DATA.availability ?? 1) * 1000) / 10}% (เผื่อลาพักร้อน ${DATA.annualLeaveDays} วัน/ปี) · "เฉลี่ยต่างจากคาด" เป็นบวก = ใช้เวลานานกว่าที่คาด</div>
+  </div>${biasCard(rows, role)}${detail}`;
+  document.querySelectorAll("#p-estimate tr.click").forEach(tr => tr.onclick = () => { state.estPerson = tr.dataset.p; renderEstimate(); });
+}
+
+/* ---------- defect & retest (Phase 12) ---------- */
+function renderDefect() {
+  // measurable base = issues that actually reached QA hands, in projects that HAVE a fail status
+  const all = issues();
+  const base = all.filter(i => i.hasDefectFlow && i.received);
+  const failed = base.filter(i => i.defects > 0);
+  const rounds = failed.reduce((a, i) => a + i.defects, 0);
+  const multi = failed.filter(i => i.defects >= 2);
+  const noFlow = [...new Set(all.filter(i => !i.hasDefectFlow).map(i => i.project))];
+
+  // by dev (owner of the bounced work)
+  const byDev = {};
+  for (const i of base) {
+    const who = i.devOwner || "(ไม่ระบุ dev)";
+    const p = byDev[who] ??= { sent: 0, failedN: 0, rounds: 0, items: [] };
+    p.sent++;
+    if (i.defects > 0) { p.failedN++; p.rounds += i.defects; p.items.push(i); }
+  }
+  const devRows = Object.entries(byDev).filter(([n, p]) => p.sent >= 3)
+    .sort((a, b) => b[1].failedN / b[1].sent - a[1].failedN / a[1].sent);
+  // by tester (who pressed the fail transition)
+  const byTester = {};
+  for (const i of failed) for (const a of i.defectBy) {
+    const p = byTester[a || "(ไม่ระบุ)"] ??= { caught: 0, issues: new Set() };
+    p.caught++; p.issues.add(i.key);
+  }
+  const testerRows = Object.entries(byTester).sort((a, b) => b[1].caught - a[1].caught);
+
+  // per-sprint trend
+  const sIds = [...new Set(base.map(i => i.sprint).filter(Boolean))].sort((a, b) => sprintById[a].start < sprintById[b].start ? -1 : 1);
+  const trend = sIds.map(id => {
+    const s = base.filter(i => i.sprint === id);
+    return { id, n: s.length, rate: s.filter(i => i.defects > 0).length / s.length };
+  }).filter(s => s.n >= 5);
+  const maxR = Math.max(0.01, ...trend.map(s => s.rate));
+  const cols = trend.map(s => `
+    <div class="colgrp" title="${esc(sprintById[s.id].name)}: ตีกลับ ${Math.round(s.rate * 100)}% ของ ${s.n} งานที่เข้าเทส">
+      <div class="col" style="height:${Math.max(s.rate / maxR * 100, 2)}%;background:var(--c5)"></div>
+    </div>`).join("");
+  const colx = trend.map(s => `<div title="${esc(sprintById[s.id].name)}">${esc(sprintById[s.id].name.replace(/ Sprint /, " S"))}</div>`).join("");
+
+  if (state.defPerson && !byDev[state.defPerson]) state.defPerson = null;
+  let detail = "";
+  if (state.defPerson) {
+    const items = byDev[state.defPerson].items.sort((a, b) => b.defects - a.defects);
+    detail = `<div class="card"><h2>งานของ ${esc(state.defPerson)} ที่โดนตีกลับ</h2>
+    <table><thead><tr><th>Key</th><th>งาน</th><th>Sprint</th><th class="num">รอบที่โดนตีกลับ</th><th>tester ที่จับ</th><th>ปิดเมื่อ</th></tr></thead><tbody>
+    ${items.map(i => `<tr><td><a class="klink" href="${JURL}${i.key}" target="_blank">${i.key}</a></td>
+      <td>${esc(i.summary)}</td>
+      <td class="small">${esc(i.sprint ? sprintById[i.sprint].name : "นอก sprint")}</td>
+      <td class="num">${i.defects}</td>
+      <td class="small">${esc([...new Set(i.defectBy)].join(", ") || "–")}</td>
+      <td class="mono small">${i.doneTs}</td></tr>`).join("")}
+    </tbody></table></div>`;
+  }
+
+  $("#p-defect").innerHTML = `
+  <div class="tiles">
+    <div class="tile"><div class="lab">งานที่เข้ามือเทส (วัดได้)</div><div class="val">${base.length.toLocaleString()}</div><div class="d">เฉพาะโปรเจกต์ที่มีสถานะ fail</div></div>
+    <div class="tile"><div class="lab">โดนตีกลับ ≥1 รอบ</div><div class="val">${base.length ? Math.round(failed.length / base.length * 100) : 0}%</div><div class="d">${failed.length} งาน</div></div>
+    <div class="tile"><div class="lab">รอบ retest fail รวม</div><div class="val">${rounds}</div><div class="d">เฉลี่ย ${failed.length ? fmt(rounds / failed.length) : "–"} รอบ/งานที่โดน</div></div>
+    <div class="tile"><div class="lab">โดนตีกลับ ≥2 รอบ</div><div class="val">${multi.length}</div><div class="d">งานเรื้อรัง ควรดู root cause</div></div>
+  </div>
+  <div class="card">
+    <h2>อัตราโดนตีกลับ ราย dev (เจ้าของงาน)</h2>
+    <div class="note">นับเฉพาะคนที่ส่งงานเข้าเทส ≥3 งาน · คลิกชื่อเพื่อดูรายการงานที่โดนตีกลับ</div>
+    <table><thead><tr><th>ชื่อ</th><th class="num">ส่งเข้าเทส</th><th class="num">โดนตีกลับ</th><th class="num">% ตีกลับ</th><th class="num">รอบ fail รวม</th><th class="num">เฉลี่ยรอบ/งานที่โดน</th></tr></thead>
+    <tbody>${devRows.map(([n, p]) => `
+      <tr class="click ${state.defPerson === n ? "sel" : ""}" data-p="${esc(n)}">
+      <td>${esc(n)} <span class="small">(${esc(DATA.people[n]?.label || DATA.people[n]?.role || "?")})</span></td>
+      <td class="num">${p.sent}</td><td class="num">${p.failedN}</td>
+      <td class="num ${p.failedN / p.sent > 0.3 ? "neg" : ""}">${Math.round(p.failedN / p.sent * 100)}%</td>
+      <td class="num">${p.rounds || ""}</td>
+      <td class="num">${p.failedN ? fmt(p.rounds / p.failedN) : "–"}</td></tr>`).join("")}</tbody></table>
+  </div>
+  <div class="card">
+    <h2>Defect ที่จับได้ ราย tester (คนที่กดตีกลับ)</h2>
+    <div class="note">การจับ defect ได้คือผลงานของ tester — ตัวเลขสูง = เทสละเอียด ไม่ใช่สิ่งไม่ดี</div>
+    <table><thead><tr><th>ชื่อ</th><th class="num">รอบ fail ที่กด</th><th class="num">จำนวนงานที่จับได้</th></tr></thead>
+    <tbody>${testerRows.map(([n, p]) => `
+      <tr><td>${esc(n)} <span class="small">(${esc(DATA.people[n]?.label || DATA.people[n]?.role || "?")})</span></td>
+      <td class="num">${p.caught}</td><td class="num">${p.issues.size}</td></tr>`).join("")}</tbody></table>
+  </div>
+  ${trend.length ? `<div class="card">
+    <h2>% งานโดนตีกลับ รายสปรินต์</h2>
+    <div class="note">ฐาน = งานที่เข้ามือเทสใน sprint นั้น (แสดงเฉพาะ sprint ที่วัดได้ ≥5 งาน)</div>
+    <div class="cols" style="height:110px">${cols}</div><div class="colx">${colx}</div>
+  </div>` : ""}
+  ${detail}
+  ${noFlow.length ? `<div class="small" style="margin:4px 2px">โปรเจกต์ที่วัดไม่ได้เพราะ workflow ไม่มีสถานะ fail: ${noFlow.join(", ")}</div>` : ""}`;
+  document.querySelectorAll("#p-defect tr.click").forEach(tr => tr.onclick = () => { state.defPerson = tr.dataset.p; renderDefect(); });
+}
+
+/* ---------- insight (auto-generated from thresholds; recomputed on every rebuild/filter) ---------- */
+const SEV = {
+  good: `<span class="chip"><span class="sw" style="background:var(--good)"></span>ปกติ</span>`,
+  warn: `<span class="chip"><span class="sw" style="background:var(--warn)"></span>ควรจับตา</span>`,
+  serious: `<span class="chip"><span class="sw" style="background:var(--serious)"></span>ควรแก้</span>`,
+};
+function renderInsight() {
+  const items = [];
+  const roleName = { dev: "Dev", tester: "Tester" };
+
+  // 1) estimation bias per role
+  for (const role of ["dev", "tester"]) {
+    const rows = estRows(role);
+    const ratios = rows.map(r => r.days / r.expected).filter(x => isFinite(x) && x > 0);
+    if (ratios.length < 10) continue;
+    const med = median(ratios);
+    if (med > 1.15) items.push({
+      sev: med > 1.5 ? "serious" : "warn", title: `การตั้ง point ฝั่ง ${roleName[role]} ต่ำกว่าความจริงอย่างเป็นระบบ`,
+      body: `median เวลาจริง = ${fmt(med)} เท่าของที่คาด (จาก ${ratios.length} งาน หลังหักผล capacity+WIP แล้ว) — เป็นปัญหาการประเมินตอน planning ทั้งทีม ไม่ใช่ความช้ารายคน`,
+      act: `ปรับ norm การตั้ง ${role === "dev" ? "story" : "testing"} point ให้ ×${fmt(med)} หรือยอมรับว่า 1 point ≈ ${fmt(med)} วัน`,
+    });
+    else if (med < 0.85) items.push({
+      sev: "good", title: `ฝั่ง ${roleName[role]} ประเมินเผื่อไว้เยอะ`,
+      body: `median เวลาจริงแค่ ${fmt(med)} เท่าของที่คาด — มีพื้นที่รับงานเพิ่มต่อ sprint`, act: null,
+    });
+    else items.push({
+      sev: "good", title: `การประเมิน point ฝั่ง ${roleName[role]} แม่น`,
+      body: `median เวลาจริง = ${fmt(med)} เท่าของที่คาด จาก ${ratios.length} งาน — ความต่างที่เหลือเป็นเรื่องเฉพาะงาน/เฉพาะคน`, act: null,
+    });
+  }
+
+  // 2) QA queue bottleneck sprints
+  const list = issues();
+  const sIds = [...new Set(list.map(i => i.sprint).filter(Boolean))];
+  const qPer = sIds.map(id => {
+    const q = list.filter(i => i.sprint === id && i.queueDays != null).map(i => i.queueDays);
+    return { id, med: median(q), n: q.length };
+  }).filter(s => s.n >= 3);
+  const spikes = qPer.filter(s => s.med >= 3).sort((a, b) => b.med - a.med);
+  if (spikes.length) items.push({
+    sev: "warn", title: "มี sprint ที่งานกองรอเข้าเทสนานผิดปกติ",
+    body: spikes.slice(0, 3).map(s => `${sprintById[s.id].name} รอ median ${fmt(s.med)} วันทำงาน (${s.n} งาน)`).join(" · ")
+      + " — ของกองรอ = กำลัง tester ไม่พอในช่วงนั้น ไม่ใช่ tester ช้า",
+    act: "เกลี่ยกำลังเทสหรือลดปริมาณงานที่ปล่อยเข้าเทสพร้อมกันใน sprint ลักษณะนี้",
+  });
+  else if (qPer.length) items.push({ sev: "good", title: "คิวรอเข้าเทสอยู่ในเกณฑ์ดี", body: `ทุก sprint ที่วัดได้ median คิวรอไม่เกิน 2 วันทำงาน`, act: null });
+
+  // 3) context switching (high WIP)
+  const hiWip = Object.entries(DATA.people)
+    .filter(([n, p]) => p.role === "dev" || p.role === "tester")
+    .map(([n, p]) => ({ n, w: Math.max(p.wipDev ?? 0, p.wipTest ?? 0) }))
+    .filter(x => x.w >= 3).sort((a, b) => b.w - a.w);
+  if (hiWip.length) items.push({
+    sev: "warn", title: "Context switching สูง — ถืองานพร้อมกันเกิน 3 ใบ",
+    body: hiWip.map(x => `${x.n} (${fmt(x.w)} ใบ)`).join(" · ") + " — งานแต่ละใบจะใช้วันปฏิทินยืดโดยไม่ใช่ความช้าของคน (ระบบชดเชยใน 'วันที่คาด' ให้แล้ว)",
+    act: "ลด WIP ต่อคนให้ ≤2 ใบ จะปิดงานแต่ละใบได้เร็วขึ้นโดย effort เท่าเดิม",
+  });
+
+  // 4) unpointed workload
+  const unp = list.filter(i => i.devPts == null && i.testPts == null).length;
+  if (list.length && unp / list.length > 0.5) {
+    const byType = {};
+    for (const i of list) if (i.devPts == null && i.testPts == null) byType[i.type] = (byType[i.type] || 0) + 1;
+    items.push({
+      sev: "warn", title: `งาน ${Math.round(unp / list.length * 100)}% ไม่มี point — ตัวเลข velocity จริงเชื่อได้บางส่วน`,
+      body: `ที่ไม่มี point มากสุด: ${Object.entries(byType).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([t, n]) => `${t} ${n} งาน`).join(" · ")} — ระบบชดเชยด้วย imputed points (~) ซึ่งวัดเวลาที่ใช้ ไม่ใช่ผลงาน`,
+      act: "ถ้าอยากได้ velocity ที่เป็น 'ผลงาน' จริง ให้ทีมใส่ point ให้ Bug/Subtask ด้วย",
+    });
+  }
+
+  // 5) chronic carry-over sprints
+  const cPer = carryStats(list, sIds).filter(s => s.rate > 0.5).sort((a, b) => b.rate - a.rate);
+  if (cPer.length) items.push({
+    sev: "warn", title: "งานลากข้ามสปรินต์ (carry-over) สูง",
+    body: cPer.slice(0, 3).map(s => `${sprintById[s.id].name} ${Math.round(s.rate * 100)}% (${s.carried}/${s.n} งาน)`).join(" · ")
+      + " — งานส่วนใหญ่ที่ปิดใน sprint เหล่านี้เริ่มมาก่อน sprint จะเปิด แปลว่าตัดงานเข้า sprint เกินกำลังหรืองานใหญ่กว่าที่คิด",
+    act: "ลดปริมาณงานที่ commit ต่อ sprint หรือซอยงานให้เล็กพอจบใน sprint เดียว",
+  });
+
+  // 6) data hygiene per project
+  const hygP = {};
+  for (const i of list) { const h = hygP[i.project] ??= { n: 0, f: 0 }; h.n++; if (i.devStart) h.f++; }
+  const lowH = Object.entries(hygP).filter(([k, h]) => h.n >= 20 && h.f / h.n < 0.7)
+    .map(([k, h]) => `${k} (${Math.round(h.f / h.n * 100)}%)`);
+  if (lowH.length) items.push({
+    sev: "warn", title: "บางโปรเจกต์ลาก status ไม่ครบ — ตัวเลขเวลาเชื่อถือได้น้อยลง",
+    body: `โปรเจกต์ที่งานผ่านสถานะ dev จริงต่ำกว่า 70%: ${lowH.join(" · ")} (งานที่กระโดด To Do→Done วัดเวลาไม่ได้)`,
+    act: "กำชับทีมให้ลาก card ตาม workflow จริง โดยเฉพาะเข้า In Progress และ Ready to test",
+  });
+
+  // 6) first-pass yield outliers (dev, enough volume)
+  const { rows: vd, avg: avgD } = velocityStats("dev");
+  const lowFp = vd.filter(r => r.fp != null && r.fpTot >= 10 && r.fp < 0.7);
+  if (lowFp.length) items.push({
+    sev: "warn", title: "งานโดนตีกลับจาก QA บ่อยกว่าปกติ",
+    body: lowFp.map(r => `${r.name} ผ่านรอบเดียว ${Math.round(r.fp * 100)}% (${r.fpTot} งาน)`).join(" · ") + " — velocity สูงแต่ตีกลับบ่อยไม่ใช่ over-performance จริง",
+    act: "ดู root cause ราย issue ใน Drill down (คอลัมน์ defect) ก่อนสรุป",
+  });
+
+  // 7) over/under vs team average (both roles)
+  for (const role of ["dev", "tester"]) {
+    const { rows, avg } = velocityStats(role);
+    const over = rows.filter(r => r.adj >= avg * 1.1).slice(0, 3).map(r => `${r.name} (${fmt(r.adj)})`);
+    const under = rows.filter(r => r.adj > 0 && r.adj <= avg * 0.9).slice(-3).map(r => `${r.name} (${fmt(r.adj)})`);
+    if (rows.length) items.push({
+      sev: "good", title: `สรุป velocity ฝั่ง ${roleName[role]} (ค่าเฉลี่ย ${fmt(avg)} pts/sprint หลัง normalize)`,
+      body: `Over: ${over.join(" · ") || "–"}  |  Under: ${under.join(" · ") || "–"} — ก่อนตัดสิน under ให้ดู hygiene, % งานมี point และ WIP ของคนนั้นประกอบเสมอ`, act: null,
+    });
+  }
+
+  $("#p-insight").innerHTML = items.map(it => `
+    <div class="card">
+      <h2>${it.title} ${SEV[it.sev]}</h2>
+      <div style="margin-top:6px">${it.body}</div>
+      ${it.act ? `<div class="small" style="margin-top:6px"><b>ควรทำ:</b> ${it.act}</div>` : ""}
+    </div>`).join("")
+    + `<div class="small" style="margin:4px 2px">Insight คำนวณอัตโนมัติจากข้อมูลชุดปัจจุบัน (ตาม filter โปรเจกต์ที่เลือก) — เกณฑ์ที่ใช้อธิบายไว้ในหน้า "คุณภาพข้อมูล & วิธีคิด"</div>`;
+}
+
+/* ---------- data quality ---------- */
+function renderQuality() {
+  const byProj = {};
+  for (const i of DATA.issues) {
+    const p = byProj[i.project] ??= { n: 0, dev: 0, test: 0, tester: 0, sprint: 0, flow: 0 };
+    p.n++; if (i.devPts != null) p.dev++; if (i.testPts != null) p.test++;
+    if (i.testOwners.length) p.tester++; if (i.sprint) p.sprint++;
+    if (i.devStart) p.flow++;
+  }
+  const prows = Object.entries(byProj).sort((a, b) => b[1].n - a[1].n).map(([k, p]) => `
+    <tr><td>${k}</td><td class="num">${p.n}</td>
+    <td class="num">${Math.round(p.flow / p.n * 100)}%</td>
+    <td class="num">${Math.round(p.dev / p.n * 100)}%</td>
+    <td class="num">${Math.round(p.test / p.n * 100)}%</td>
+    <td class="num">${Math.round(p.tester / p.n * 100)}%</td>
+    <td class="num">${Math.round(p.sprint / p.n * 100)}%</td></tr>`).join("");
+  // hygiene per person: % of their assigned issues that actually flowed through a dev status
+  const hyg = {};
+  for (const i of DATA.issues) {
+    if (!i.assignee) continue;
+    const h = hyg[i.assignee] ??= { n: 0, flow: 0 };
+    h.n++; if (i.devStart) h.flow++;
+  }
+  const people = Object.entries(DATA.people).sort((a, b) => (b[1].nAssignee + b[1].nTester) - (a[1].nAssignee + a[1].nTester));
+  const rrows = people.map(([n, p]) => {
+    const h = hyg[n];
+    return `
+    <tr><td>${esc(n)}</td><td>${p.role}${p.label ? ` (${esc(p.label)})` : ""}${p.overridden ? ' <span class="small">(กำหนดเอง)</span>' : ""}</td>
+    <td class="num">${Math.round((p.capacity ?? 1) * 100)}%</td>
+    <td class="num">${p.nAssignee}</td><td class="num">${p.nTester}</td>
+    <td class="num">${h && h.n >= 3 ? Math.round(h.flow / h.n * 100) + "%" : "–"}</td></tr>`;
+  }).join("");
+  $("#p-quality").innerHTML = `
+  <div class="card">
+    <h2>ความครบถ้วนของข้อมูล (งานที่ปิดตั้งแต่ ${DATA.since})</h2>
+    <table><thead><tr><th>โปรเจกต์</th><th class="num">งานปิด</th><th class="num">ลาก status ครบ</th><th class="num">มี dev point</th><th class="num">มี testing point</th><th class="num">ระบุ tester</th><th class="num">จับคู่ sprint ได้</th></tr></thead>
+    <tbody>${prows}</tbody></table>
+  </div>
+  <div class="card">
+    <h2>Role ของแต่ละคน (infer จากข้อมูล — แก้ได้ใน roles.json แล้วรันใหม่)</h2>
+    <div class="note">กติกา: ถ้าโผล่ในช่อง Tester บ่อยกว่าเป็น assignee → tester</div>
+    <table><thead><tr><th>ชื่อ</th><th>role</th><th class="num">capacity</th><th class="num">ครั้งที่เป็น assignee</th><th class="num">ครั้งที่เป็น tester</th><th class="num">ลาก status ครบ (hygiene)</th></tr></thead>
+    <tbody>${rrows}</tbody></table>
+  </div>
+  <div class="card">
+    <h2>วิธีคิด (methodology)</h2>
+    <ul style="padding-left:20px; display:grid; gap:6px">
+      <li>ขอบเขต: งานที่มี resolution date ตั้งแต่ ${DATA.since} ไม่รวม Epic และสถานะ Won't do</li>
+      <li>Dev points นับจาก primary assignee (field: Story point estimate / Story Points / Story point / Task point ตัวแรกที่มีค่า) · Testing points นับจากช่อง Tester + Testing point estimate</li>
+      <li><b>Fallback สำหรับงานที่ไม่มี testing point แยก:</b> ใช้จังหวะที่ card ถูกส่งจาก dev เข้ามือเทส (changelog) เป็นเส้นแบ่งงาน แล้วแบ่ง estimate เดิมคนละครึ่ง — dev ได้ครึ่ง, tester ได้ครึ่ง (ในตารางจะมีเครื่องหมาย *) · ถ้างานไม่ผ่านมือเทสเลย dev ได้เต็ม</li>
+      <li><b>การระบุตัวคนแบบ fallback:</b> ฝั่ง dev = assignee ที่ role เป็น dev (ถ้า assignee เป็น tester จะหา dev จากคนที่กด transition ฝั่ง dev ใน changelog) · ฝั่ง tester = ช่อง Tester ก่อน ถ้าไม่มีใช้คนที่ role เป็น tester ที่กด transition เข้าสถานะเทส/ปิดงาน ถ้าไม่มีอีกและ assignee เป็น tester ใช้ assignee · งานที่มีหลาย tester แบ่ง point เท่า ๆ กัน</li>
+      <li>จับคู่ sprint จากวันปิดงานเทียบช่วงวันของ sprint ในโปรเจกต์เดียวกัน (+3 วันเผื่อปิดหลังจบ sprint) เพราะ link sprint ตรง ๆ ใน Jira ไม่น่าเชื่อถือ (บาง board ผูกทั้ง backlog เข้าทุก sprint)</li>
+      <li>วันจริงฝั่ง dev = วันแรกที่เข้าสถานะ dev in progress → วันสุดท้ายที่เข้าสถานะ ready to test/testing (รอบสุดท้าย = รอบที่ผ่านโดยไม่เกิด defect)</li>
+      <li>วันจริงฝั่ง tester = วันที่เริ่มเทสจริง (เข้าสถานะ Testing/Testing by QA — ไม่นับคิวที่ค้างใน Ready to test) → วันที่เข้าสถานะ done · เวลาคิวแยกไปแสดงเป็นกราฟ "คิวรอเข้าเทส" ในหน้าภาพรวม</li>
+      <li>นับเฉพาะวันทำงาน จ.–ศ. และหักวันหยุดนักขัตฤกษ์ไทยปี 2026 แล้ว (list วันหยุดแก้ได้ใน config.json)</li>
+      <li><b>WIP factor:</b> วันที่คาดใน Estimate vs Actual = point ÷ capacity × WIP เฉลี่ยของคนนั้น (จำนวน card ที่ถือพร้อมกันต่อวันทำงาน) เพราะการถืองานหลายใบทำให้วันปฏิทินต่อใบยืดโดยไม่ใช่ความช้าของคน · WIP สูง = สัญญาณให้จัดคิวงาน ไม่ใช่ความผิดรายคน</li>
+      <li><b>Imputed points (~):</b> งานที่ไม่มี point แต่มีเวลาจริง ประมาณ point = วันจริง ÷ อัตรากลางทีม (median วันต่อ point, เพดาน 10 point/งาน กันงานลืมปิด) — วัด "เวลาที่ใช้" ไม่ใช่ผลงาน มีไว้ให้คนทำบั๊ก/subtask ที่ไม่มี point ไม่หายจากรายงาน</li>
+      <li><b>ผ่าน QA รอบเดียว (first-pass):</b> % งานที่ส่งเข้าเทสแล้วไม่โดนตีกลับ (นับเฉพาะงานที่ผ่านมือเทส) · ฝั่ง tester นับ defect ที่จับได้เป็นผลงาน</li>
+      <li><b>Hygiene (ลาก status ครบ):</b> % งานที่ผ่านสถานะ dev จริงก่อนปิด — งานที่กระโดด To Do→Done วัดเวลาไม่ได้ ตัวเลขคนนั้น/โปรเจกต์นั้นจึงเชื่อถือได้น้อยลง</li>
+      <li><b>Estimation bias (tab Estimate vs Actual):</b> histogram ของ "เวลาจริง ÷ เวลาที่คาด (หลังปรับ capacity+WIP)" · median &gt; 1.15× = ทีมตั้ง point ต่ำไปอย่างเป็นระบบ (ปัญหา planning) · 0.85–1.15× = ประเมินแม่น · &lt; 0.85× = เผื่อเยอะ</li>
+      <li><b>สัดส่วนประเภทงาน (tab Velocity):</b> จำนวนงานที่ปิดแยก Story/Task/Bug/Subtask/Incident รายคน — ให้บริบทว่าใครรับงานประเภทที่มักไม่มี point</li>
+      <li><b>Carry-over:</b> งานนับว่า carry-over เมื่อเริ่ม dev ก่อนวันเปิดของ sprint ที่ปิดงาน — แสดง trend รายสปรินต์ในหน้าภาพรวมและตัวเลขใน Drill down (เฉพาะ sprint ที่วัดได้ ≥5 งาน)</li>
+      <li><b>วันลา — สูตรเฉลี่ย (availability):</b> สมมติฐานทุกคนมีลาพักร้อน ${DATA.annualLeaveDays} วัน/ปีและใช้หมดแน่ · availability = (วันทำงานทั้งปี ${DATA.yearWorkdays} − ${DATA.annualLeaveDays}) ÷ ${DATA.yearWorkdays} = ${Math.round((DATA.availability ?? 1) * 1000) / 10}% · "วันที่คาด" ทุกงานถูกหารด้วยค่านี้ (ยืดขึ้น ~${Math.round((1 / (DATA.availability ?? 1) - 1) * 1000) / 10}%) เพื่อเผื่อวันลาแบบเฉลี่ย</li>
+      <li><b>วันลา — ข้อมูลจริงรายคน:</b> ถ้าใส่วันลาจริงใน leaves.json (ชื่อ → list วันที่ ISO เช่น "2026-07-20") วันลาของเจ้าของงานจะถูกหักจาก "วันจริง" ตรง ๆ (ฝั่ง dev หักของ devOwner, ฝั่ง test หักของ tester คนแรก) และคนนั้นจะ<b>ไม่</b>ถูกคูณสูตรเฉลี่ยซ้ำ (กันหักสองต่อ) — ข้อมูลจริงแม่นกว่าเสมอ ใส่เมื่อไหร่ override สูตรเฉลี่ยทันที</li>
+      <li><b>Tab Insight:</b> ระบบวิเคราะห์อัตโนมัติทุกครั้งที่ rebuild/เปลี่ยน filter ด้วยเกณฑ์: bias median &gt;1.15×=เตือน &gt;1.5×=ควรแก้ · คิวรอเข้าเทส median ≥3 วัน/sprint=คอขวด · WIP ≥3 ใบ=context switching · งานไม่มี point &gt;50%=เตือนความน่าเชื่อถือ · carry-over &gt;50%/sprint=เตือน planning · hygiene &lt;70% (ขั้นต่ำ 20 งาน)=เตือน · first-pass &lt;70% (ขั้นต่ำ 10 งาน)=เตือน · over/under = ±10% จากค่าเฉลี่ย normalize แล้ว</li>
+      <li><b>Capacity รายคน:</b> role ที่ลง effort ใน Jira ได้ไม่เต็มวัน (เช่น PE = 0.5 MD/วัน เพราะอีกครึ่งเป็นงานประชุม/support) กำหนด capacity ใน roles.json ได้ · การเทียบ over/under ใช้ velocity ÷ capacity และความคาดหวังเวลาจริงใช้ point ÷ capacity (เช่น 4 point ของคน capacity 50% = คาด 8 วันทำงาน)</li>
+      <li><b>Role อื่นที่ไม่ใช่ dev/tester (DevOps, TechDirector, BA, PO):</b> กำหนดใน roles.json เป็น <code>{"role":"other","label":"PO"}</code> — คนกลุ่มนี้<b>ไม่ถูกนับ</b>ในตาราง/ค่าเฉลี่ย Velocity, Estimate vs Actual และกฎ Insight (งานของพวกเขาไม่ใช่ delivery แบบ point จึงบิดค่าเฉลี่ยทีม) แต่ยังเห็นงานได้ใน Drill down ราย Sprint</li>
+      <li>defect = จำนวนครั้งที่งานเข้าสถานะ retest failed / test failed / failed (ตาม workflow ของแต่ละโปรเจกต์)</li>
+      <li><b>Tab Defect & Retest:</b> ฐานคำนวณ = งานที่เข้ามือเทสจริง เฉพาะโปรเจกต์ที่ workflow มีสถานะ fail (FUN, IIC, WL, VFM) · "dev เจ้าของงานที่โดนตีกลับ" = devOwner ของ issue · "tester ที่จับ" = คนที่กด transition เข้าสถานะ fail (จาก changelog) · ตาราง dev แสดงเฉพาะคนที่ส่งงานเข้าเทส ≥3 งาน กันสรุปจาก sample เล็ก</li>
+    </ul>
+  </div>`;
+}
+
+/* ---------- shell ---------- */
+function render() {
+  $("#subtitle").textContent = `ทุกโปรเจกต์ที่ active ใน ${(DATA.jiraBase || "Jira").replace(/^https?:\/\//, "")} · ข้อมูลตั้งแต่ ${DATA.since} · ดึงเมื่อ ${DATA.generated}`;
+  renderOverview(); renderVelocity(); renderSprint(); renderEstimate(); renderDefect(); renderInsight(); renderQuality();
+}
+const sel = $("#fProject");
+for (const p of DATA.projects) sel.insertAdjacentHTML("beforeend", `<option>${p}</option>`);
+sel.onchange = () => { state.project = sel.value; state.sprintSel = null; state.personSel = null; state.estPerson = null; state.defPerson = null; render(); };
+$("#fRole").querySelectorAll("button").forEach(b => b.onclick = () => {
+  state.role = b.dataset.r;
+  $("#fRole").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
+  render();
+});
+$("#tabs").querySelectorAll(".tab").forEach(b => b.onclick = () => {
+  state.tab = b.dataset.t;
+  $("#tabs").querySelectorAll(".tab").forEach(x => x.classList.toggle("on", x === b));
+  document.querySelectorAll(".pane").forEach(p => p.classList.toggle("on", p.id === "p-" + state.tab));
+});
+render();
+</script>
+</body>
+</html>

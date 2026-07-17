@@ -1,0 +1,16 @@
+# ---- ห้ามขึ้น git: ความลับส่วนตัว ----
+.env
+
+# ---- ห้ามขึ้น git: ข้อมูลภายใน (internal use only) ----
+jira.db
+report.html
+backlog.csv
+backlog_raw.json
+
+# วันลารายคน = ข้อมูลส่วนบุคคล (สคริปต์สร้าง template ให้ใหม่เองเมื่อรันครั้งแรก)
+leaves.json
+
+# ---- ทั่วไป ----
+__pycache__/
+*.pyc
+.DS_Store

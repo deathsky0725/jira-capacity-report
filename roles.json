@@ -1,0 +1,65 @@
+{
+ "Chakhrit (New) Supapol": {
+  "role": "dev",
+  "label": "PE",
+  "capacity": 0.5
+ },
+ "Chalermwut (A) Akanitsupron": "dev",
+ "Chalita (Peung) B.": {
+  "role": "other",
+  "label": "PO"
+ },
+ "Chawala komlanon": "tester",
+ "Darunee (First) Naowaratphunsin": "tester",
+ "Jakkrit Chinvoraratanakanok": {
+  "role": "other",
+  "label": "TechDirector"
+ },
+ "Kanok (Pop) Patarasiriwong": {
+  "role": "dev",
+  "label": "PE",
+  "capacity": 0.5
+ },
+ "Konthanat (Aong) Bunneramit": {
+  "role": "other",
+  "label": "DevOps"
+ },
+ "Kornpharich (New) Jirathaweeratch": "tester",
+ "Nantapas (Chompoo) Kittiwiwatthada": "dev",
+ "Napat (Kong) Poldongnog": "dev",
+ "Naruephon Detchuchai": "dev",
+ "Nattaphon(Nes)": "dev",
+ "Parithat (Nut) Chokkanapithak": "dev",
+ "Pasakorn Sawadsukaudom": "dev",
+ "Patiharn (Geng) Chaowanno": "tester",
+ "Patiparn (Pond) Somdulyakanok": "dev",
+ "Peerapat (Seang) Thongtae": "dev",
+ "Pojanin (Tong) Srichay": "tester",
+ "Pongsathon [Namo] Kuanla": "dev",
+ "Saisuda (Pop) Khannara": "tester",
+ "Sarawut (Mark) Nawawisitkul": "dev",
+ "Sirapat (Preaw) Inchan": "dev",
+ "Siripol (Suea) Thainklue": "dev",
+ "Sukirin (Ton) Boonrod": "dev",
+ "Supavitch (Field) Sangsuwan": "dev",
+ "Tanapong (Best) Vareesa-ard": "dev",
+ "Tanawan (Bo) Piyachattarot": "tester",
+ "Thanadon (Non) Yawichean": "tester",
+ "Thanarut (Tee) Tangtongsoontorn": "dev",
+ "Thanatcha (Eao) Pitihadakul": "dev",
+ "Tinnapath (Oath) Sreprasert": "dev",
+ "Varut (Rut) Rujitanont": {
+  "role": "other",
+  "label": "DevOps"
+ },
+ "Waramporn (Kwang) Pongrujaporn": {
+  "role": "other",
+  "label": "PO"
+ },
+ "Yarnin (Klar) Poldongnog": "dev",
+ "Yuttasak_Q": "tester",
+ "pongsatorn (whay) Ngasakul": {
+  "role": "other",
+  "label": "BA"
+ }
+}
